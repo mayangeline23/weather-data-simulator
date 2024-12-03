@@ -4,9 +4,9 @@ import numpy as np
 
 # App title
 st.title("🌦️ Weather Data Simulator")
-st.subheader("This app simulates weather conditions based on user inputs!")
+st.subheader("Simulate weather data and explore visualizations!")
 
-# Input features
+# Sidebar inputs
 st.sidebar.header("Input Parameters")
 
 season = st.sidebar.selectbox(
@@ -42,24 +42,48 @@ precipitation = st.sidebar.slider(
     value=10.0
 )
 
-# Simulated output
+# Simulated weather data
 st.header("Simulated Weather Data")
+num_rows = st.slider("Number of Simulated Records", 10, 100, 20)
+
+# Generate random weather data
 data = {
-    "Season": season,
-    "Temperature (°C)": temperature,
-    "Humidity (%)": humidity,
-    "Wind Speed (km/h)": wind_speed,
-    "Precipitation (mm)": precipitation,
-    "Sky Condition": np.random.choice(["Clear", "Cloudy", "Rainy", "Stormy"], p=[0.3, 0.4, 0.2, 0.1])
+    "Season": [season] * num_rows,
+    "Temperature (°C)": np.random.normal(temperature, 5, num_rows),
+    "Humidity (%)": np.random.normal(humidity, 10, num_rows),
+    "Wind Speed (km/h)": np.random.normal(wind_speed, 5, num_rows),
+    "Precipitation (mm)": np.random.normal(precipitation, 20, num_rows),
+    "Sky Condition": np.random.choice(["Clear", "Cloudy", "Rainy", "Stormy"], size=num_rows, p=[0.3, 0.4, 0.2, 0.1])
 }
-weather_df = pd.DataFrame([data])
 
-st.table(weather_df)
+weather_df = pd.DataFrame(data)
 
-# Add data visualization
-st.subheader("Weather Distribution")
-chart_data = pd.DataFrame(
-    np.random.randn(100, 4) * [temperature, humidity/100, wind_speed/10, precipitation/10],
-    columns=["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]
+# Display the data as a table
+st.write(weather_df)
+
+# Allow users to download data as CSV
+csv = weather_df.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="📂 Download Data as CSV",
+    data=csv,
+    file_name="simulated_weather_data.csv",
+    mime="text/csv"
 )
-st.line_chart(chart_data)
+
+# Add visualizations
+st.header("Weather Data Visualization")
+
+# Select graph type
+graph_type = st.selectbox("Choose Graph Type", ["Line Chart", "Bar Chart", "Histogram"])
+
+if graph_type == "Line Chart":
+    st.line_chart(weather_df[["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]])
+elif graph_type == "Bar Chart":
+    st.bar_chart(weather_df[["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]])
+elif graph_type == "Histogram":
+    st.subheader("Temperature Distribution")
+    st.hist_chart(weather_df["Temperature (°C)"])
+
+# Summary statistics
+st.header("Summary Statistics")
+st.write(weather_df.describe())
