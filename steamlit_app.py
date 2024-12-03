@@ -1,76 +1,43 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import altair as alt
+import matplotlib.pyplot as plt
 
-# App title
-st.title("🌦️ Weather Data Simulator")
-st.subheader("Simulate weather data and explore visualizations!")
+# App title and header
+st.title("Weather Data Simulator 🌦️")
+st.subheader("Generate, Analyze, and Visualize Weather Data")
 
-# Sidebar inputs
-st.sidebar.header("Input Parameters")
+# Sidebar: User Input for Data Generation
+st.sidebar.header("Weather Data Parameters")
+num_days = st.sidebar.slider("Number of Days", min_value=7, max_value=365, value=30)
+min_temp = st.sidebar.slider("Minimum Temperature (°C)", -30, 30, -10)
+max_temp = st.sidebar.slider("Maximum Temperature (°C)", min_temp, 50, 35)
+min_humidity = st.sidebar.slider("Minimum Humidity (%)", 0, 50, 10)
+max_humidity = st.sidebar.slider("Maximum Humidity (%)", min_humidity, 100, 90)
+min_wind_speed = st.sidebar.slider("Minimum Wind Speed (km/h)", 0, 10, 2)
+max_wind_speed = st.sidebar.slider("Maximum Wind Speed (km/h)", min_wind_speed, 100, 50)
+min_precipitation = st.sidebar.slider("Minimum Precipitation (mm)", 0, 10, 0)
+max_precipitation = st.sidebar.slider("Maximum Precipitation (mm)", min_precipitation, 50, 20)
 
-season = st.sidebar.selectbox(
-    "Select Season",
-    ["Winter", "Spring", "Summer", "Autumn"]
-)
-
-temperature = st.sidebar.slider(
-    "Temperature (°C)",
-    min_value=-30,
-    max_value=50,
-    value=20
-)
-
-humidity = st.sidebar.slider(
-    "Humidity (%)",
-    min_value=0,
-    max_value=100,
-    value=50
-)
-
-wind_speed = st.sidebar.slider(
-    "Wind Speed (km/h)",
-    min_value=0,
-    max_value=150,
-    value=10
-)
-
-precipitation = st.sidebar.slider(
-    "Precipitation (mm)",
-    min_value=0.0,
-    max_value=500.0,
-    value=10.0
-)
-
-# Simulated weather data
-st.header("Simulated Weather Data")
-num_rows = st.slider("Number of Simulated Records", 10, 100, 20)
-
-# Generate random weather data
-data = {
-    "Season": [season] * num_rows,
-    "Temperature (°C)": np.random.normal(temperature, 5, num_rows),
-    "Humidity (%)": np.random.normal(humidity, 10, num_rows),
-    "Wind Speed (km/h)": np.random.normal(wind_speed, 5, num_rows),
-    "Precipitation (mm)": np.random.normal(precipitation, 20, num_rows),
-    "Sky Condition": np.random.choice(["Clear", "Cloudy", "Rainy", "Stormy"], size=num_rows, p=[0.3, 0.4, 0.2, 0.1])
+# Generate Weather Data
+st.header("Generated Weather Data")
+weather_data = {
+    "Date": pd.date_range(start=pd.Timestamp.today(), periods=num_days),
+    "Temperature (°C)": np.random.uniform(min_temp, max_temp, num_days).round(2),
+    "Humidity (%)": np.random.uniform(min_humidity, max_humidity, num_days).round(2),
+    "Wind Speed (km/h)": np.random.uniform(min_wind_speed, max_wind_speed, num_days).round(2),
+    "Precipitation (mm)": np.random.uniform(min_precipitation, max_precipitation, num_days).round(2),
 }
+weather_df = pd.DataFrame(weather_data)
+st.dataframe(weather_df)
 
-weather_df = pd.DataFrame(data)
+# Download Data as CSV
+st.subheader("Download Weather Data")
+csv = weather_df.to_csv(index=False).encode("utf-8")
+st.download_button(label="Download CSV", data=csv, file_name="weather_data.csv", mime="text/csv")
 
-# Display the data as a table
-st.write(weather_df)
-
-# Allow users to download data as CSV
-csv = weather_df.to_csv(index=False).encode('utf-8')
-st.download_button(
-    label="📂 Download Data as CSV",
-    data=csv,
-    file_name="simulated_weather_data.csv",
-    mime="text/csv"
-)
-
-# Add visualizations
+# Visualization
 st.header("Weather Data Visualization")
 
 # Select graph type
@@ -82,8 +49,19 @@ elif graph_type == "Bar Chart":
     st.bar_chart(weather_df[["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]])
 elif graph_type == "Histogram":
     st.subheader("Temperature Distribution")
-    st.hist_chart(weather_df["Temperature (°C)"])
+    
+    # Option 1: Altair for Histogram
+    temperature_histogram = alt.Chart(weather_df).mark_bar().encode(
+        alt.X("Temperature (°C)", bin=True, title="Temperature (°C)"),
+        alt.Y("count()", title="Frequency")
+    ).properties(width=600, height=400)
+    st.altair_chart(temperature_histogram)
 
-# Summary statistics
-st.header("Summary Statistics")
-st.write(weather_df.describe())
+    # Option 2: Matplotlib for Histogram
+    st.write("Matplotlib Version:")
+    fig, ax = plt.subplots()
+    ax.hist(weather_df["Temperature (°C)"], bins=20, color="skyblue", edgecolor="black")
+    ax.set_title("Temperature Distribution")
+    ax.set_xlabel("Temperature (°C)")
+    ax.set_ylabel("Frequency")
+    st.pyplot(fig)
