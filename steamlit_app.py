@@ -1,67 +1,115 @@
-import streamlit as st
-import pandas as pd
+# Import libraries
 import numpy as np
-import altair as alt
+import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.integrate import odeint
 
-# App title and header
-st.title("Weather Data Simulator 🌦️")
-st.subheader("Generate, Analyze, and Visualize Weather Data")
+# Step 1: Data Generation
+# Generate synthetic initial data
+num_regions = 5
+regions = [f"Region {i}" for i in range(1, num_regions + 1)]
+initial_population = np.random.randint(5000, 100000, size=num_regions)
+birth_rate = np.random.uniform(0.01, 0.05, size=num_regions)  # 1% to 5%
+death_rate = np.random.uniform(0.005, 0.03, size=num_regions)  # 0.5% to 3%
+migration_rate = np.random.uniform(-0.02, 0.02, size=num_regions)  # -2% to +2%
 
-# Sidebar: User Input for Data Generation
-st.sidebar.header("Weather Data Parameters")
-num_days = st.sidebar.slider("Number of Days", min_value=7, max_value=365, value=30)
-min_temp = st.sidebar.slider("Minimum Temperature (°C)", -30, 30, -10)
-max_temp = st.sidebar.slider("Maximum Temperature (°C)", min_temp, 50, 35)
-min_humidity = st.sidebar.slider("Minimum Humidity (%)", 0, 50, 10)
-max_humidity = st.sidebar.slider("Maximum Humidity (%)", min_humidity, 100, 90)
-min_wind_speed = st.sidebar.slider("Minimum Wind Speed (km/h)", 0, 10, 2)
-max_wind_speed = st.sidebar.slider("Maximum Wind Speed (km/h)", min_wind_speed, 100, 50)
-min_precipitation = st.sidebar.slider("Minimum Precipitation (mm)", 0, 10, 0)
-max_precipitation = st.sidebar.slider("Maximum Precipitation (mm)", min_precipitation, 50, 20)
+# Create a DataFrame for population data
+population_data = pd.DataFrame({
+    "Region": regions,
+    "Initial Population": initial_population,
+    "Birth Rate": birth_rate,
+    "Death Rate": death_rate,
+    "Migration Rate": migration_rate
+})
 
-# Generate Weather Data
-st.header("Generated Weather Data")
-weather_data = {
-    "Date": pd.date_range(start=pd.Timestamp.today(), periods=num_days),
-    "Temperature (°C)": np.random.uniform(min_temp, max_temp, num_days).round(2),
-    "Humidity (%)": np.random.uniform(min_humidity, max_humidity, num_days).round(2),
-    "Wind Speed (km/h)": np.random.uniform(min_wind_speed, max_wind_speed, num_days).round(2),
-    "Precipitation (mm)": np.random.uniform(min_precipitation, max_precipitation, num_days).round(2),
-}
-weather_df = pd.DataFrame(weather_data)
-st.dataframe(weather_df)
+# Print the generated data
+print("Generated Population Data:\n")
+print(population_data)
 
-# Download Data as CSV
-st.subheader("Download Weather Data")
-csv = weather_df.to_csv(index=False).encode("utf-8")
-st.download_button(label="Download CSV", data=csv, file_name="weather_data.csv", mime="text/csv")
+# Step 2: Exploratory Data Analysis (EDA)
+# Visualize initial population by region
+plt.figure(figsize=(8, 6))
+sns.barplot(x="Region", y="Initial Population", data=population_data)
+plt.title("Initial Population by Region")
+plt.xlabel("Region")
+plt.ylabel("Population")
+plt.show()
 
-# Visualization
-st.header("Weather Data Visualization")
+# Correlation heatmap of rates
+rates_data = population_data[["Birth Rate", "Death Rate", "Migration Rate"]]
+plt.figure(figsize=(6, 4))
+sns.heatmap(rates_data.corr(), annot=True, cmap="coolwarm", fmt=".2f")
+plt.title("Correlation Between Rates")
+plt.show()
 
-# Select graph type
-graph_type = st.selectbox("Choose Graph Type", ["Line Chart", "Bar Chart", "Histogram"])
+# Step 3: Modeling
+# Define a logistic growth model
+def logistic_growth(P, t, r, K):
+    """Logistic growth model."""
+    return r * P * (1 - P / K)
 
-if graph_type == "Line Chart":
-    st.line_chart(weather_df[["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]])
-elif graph_type == "Bar Chart":
-    st.bar_chart(weather_df[["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]])
-elif graph_type == "Histogram":
-    st.subheader("Temperature Distribution")
-    
-    # Option 1: Altair for Histogram
-    temperature_histogram = alt.Chart(weather_df).mark_bar().encode(
-        alt.X("Temperature (°C)", bin=True, title="Temperature (°C)"),
-        alt.Y("count()", title="Frequency")
-    ).properties(width=600, height=400)
-    st.altair_chart(temperature_histogram)
+# Step 4: Simulation
+# Simulate population growth for one region (Region 1)
+region_index = 0
+P0 = population_data["Initial Population"][region_index]  # Initial population
+r = population_data["Birth Rate"][region_index] - population_data["Death Rate"][region_index]  # Net growth rate
+K = 100000  # Carrying capacity
+time = np.linspace(0, 50, 100)  # 50 years
 
-    # Option 2: Matplotlib for Histogram
-    st.write("Matplotlib Version:")
-    fig, ax = plt.subplots()
-    ax.hist(weather_df["Temperature (°C)"], bins=20, color="skyblue", edgecolor="black")
-    ax.set_title("Temperature Distribution")
-    ax.set_xlabel("Temperature (°C)")
-    ax.set_ylabel("Frequency")
-    st.pyplot(fig)
+# Solve the logistic growth equation
+population = odeint(logistic_growth, P0, time, args=(r, K))
+
+# Plot the simulation results
+plt.figure(figsize=(8, 6))
+plt.plot(time, population, label=population_data["Region"][region_index], color="blue")
+plt.title("Population Dynamics (Logistic Growth)")
+plt.xlabel("Time (Years)")
+plt.ylabel("Population")
+plt.legend()
+plt.grid()
+plt.show()
+
+# Step 5: Multi-Region Simulation
+# Simulate and plot growth for all regions
+plt.figure(figsize=(10, 6))
+for i in range(num_regions):
+    P0 = population_data["Initial Population"][i]
+    r = population_data["Birth Rate"][i] - population_data["Death Rate"][i]
+    population = odeint(logistic_growth, P0, time, args=(r, K))
+    plt.plot(time, population, label=population_data["Region"][i])
+
+plt.title("Population Dynamics for All Regions")
+plt.xlabel("Time (Years)")
+plt.ylabel("Population")
+plt.legend()
+plt.grid()
+plt.show()
+
+# Step 6: Evaluation and Analysis
+# Compare final population sizes
+final_population = []
+for i in range(num_regions):
+    P0 = population_data["Initial Population"][i]
+    r = population_data["Birth Rate"][i] - population_data["Death Rate"][i]
+    population = odeint(logistic_growth, P0, time, args=(r, K))
+    final_population.append(population[-1][0])
+
+population_data["Final Population"] = final_population
+print("\nPopulation Data with Final Population:\n")
+print(population_data)
+
+# Visualize initial vs final population
+plt.figure(figsize=(8, 6))
+bar_width = 0.35
+index = np.arange(num_regions)
+
+plt.bar(index, population_data["Initial Population"], bar_width, label="Initial Population")
+plt.bar(index + bar_width, population_data["Final Population"], bar_width, label="Final Population")
+
+plt.xlabel("Region")
+plt.ylabel("Population")
+plt.title("Initial vs Final Population by Region")
+plt.xticks(index + bar_width / 2, population_data["Region"])
+plt.legend()
+plt.show()
