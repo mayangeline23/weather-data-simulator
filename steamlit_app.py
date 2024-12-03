@@ -1,83 +1,65 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import random
-import matplotlib.pyplot as plt
-from streamlit_lottie import st_lottie
-import requests
 
-# Function to load Lottie animations
-def load_lottie_url(url):
-    response = requests.get(url)
-    if response.status_code != 200:
-        return None
-    return response.json()
+# App title
+st.title("🌦️ Weather Data Simulator")
+st.subheader("This app simulates weather conditions based on user inputs!")
 
-# Load Lottie animations
-sun_animation = load_lottie_url("https://assets10.lottiefiles.com/packages/lf20_t9gkkhz4.json")
-cloud_animation = load_lottie_url("https://assets7.lottiefiles.com/packages/lf20_ygiuluqn.json")
+# Input features
+st.sidebar.header("Input Parameters")
 
-# Function to generate random weather data
-def generate_weather_data(num_days, season):
-    if season == "Winter":
-        temp_range = (-10, 5)
-        humidity_range = (30, 80)
-    elif season == "Spring":
-        temp_range = (5, 20)
-        humidity_range = (40, 90)
-    elif season == "Summer":
-        temp_range = (15, 35)
-        humidity_range = (20, 70)
-    else:  # Fall
-        temp_range = (0, 20)
-        humidity_range = (40, 80)
+season = st.sidebar.selectbox(
+    "Select Season",
+    ["Winter", "Spring", "Summer", "Autumn"]
+)
 
-    dates = pd.date_range(start=pd.Timestamp.today(), periods=num_days)
-    temperatures = np.random.randint(low=temp_range[0], high=temp_range[1], size=num_days)
-    humidities = np.random.randint(low=humidity_range[0], high=humidity_range[1], size=num_days)
-    conditions = random.choices(['Sunny', 'Cloudy', 'Rainy', 'Stormy', 'Snowy'], k=num_days)
+temperature = st.sidebar.slider(
+    "Temperature (°C)",
+    min_value=-30,
+    max_value=50,
+    value=20
+)
 
-    weather_data = pd.DataFrame({
-        'Date': dates,
-        'Temperature (°C)': temperatures,
-        'Humidity (%)': humidities,
-        'Condition': conditions
-    })
+humidity = st.sidebar.slider(
+    "Humidity (%)",
+    min_value=0,
+    max_value=100,
+    value=50
+)
 
-    return weather_data
+wind_speed = st.sidebar.slider(
+    "Wind Speed (km/h)",
+    min_value=0,
+    max_value=150,
+    value=10
+)
 
-# Streamlit app
-st.title("☀️ Weather Data Simulator ☁️")
+precipitation = st.sidebar.slider(
+    "Precipitation (mm)",
+    min_value=0.0,
+    max_value=500.0,
+    value=10.0
+)
 
-# Add Lottie animation
-st_lottie(sun_animation, height=150, key="sun")
+# Simulated output
+st.header("Simulated Weather Data")
+data = {
+    "Season": season,
+    "Temperature (°C)": temperature,
+    "Humidity (%)": humidity,
+    "Wind Speed (km/h)": wind_speed,
+    "Precipitation (mm)": precipitation,
+    "Sky Condition": np.random.choice(["Clear", "Cloudy", "Rainy", "Stormy"], p=[0.3, 0.4, 0.2, 0.1])
+}
+weather_df = pd.DataFrame([data])
 
-# User input for number of days and season
-num_days = st.slider("Select number of days to simulate:", 1, 30, 7)
-season = st.selectbox("Select the season:", ["Winter", "Spring", "Summer", "Fall"])
+st.table(weather_df)
 
-# Generate weather data
-if st.button("Generate Weather Data"):
-    weather_data = generate_weather_data(num_days, season)
-    st.write(weather_data)
-
-    # Optionally, display a line chart of temperature and humidity
-    st.line_chart(weather_data.set_index('Date')[['Temperature (°C)', 'Humidity (%)']])
-
-    # Visualize the distribution of temperature and humidity
-    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-    ax[0].hist(weather_data['Temperature (°C)'], bins=10, color='blue', alpha=0.7)
-    ax[0].set_title('Temperature Distribution')
-    ax[0].set_xlabel('Temperature (°C)')
-    ax[0].set_ylabel('Frequency')
-
-    ax[1].hist(weather_data['Humidity (%)'], bins=10, color='green', alpha=0.7)
-    ax[1].set_title('Humidity Distribution')
-    ax[1].set_xlabel('Humidity (%)')
-    ax[1].set_ylabel('Frequency')
-
-    st.pyplot(fig)
-
-    # Allow users to download the data as a CSV file
-    csv = weather_data.to_csv(index=False).encode('utf-8')
-    st.download_button("Download Weather Data as CSV", csv, "weather_data.csv", "text/csv")
+# Add data visualization
+st.subheader("Weather Distribution")
+chart_data = pd.DataFrame(
+    np.random.randn(100, 4) * [temperature, humidity/100, wind_speed/10, precipitation/10],
+    columns=["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]
+)
+st.line_chart(chart_data)
