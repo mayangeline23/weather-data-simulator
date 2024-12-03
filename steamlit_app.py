@@ -3,10 +3,22 @@ import pandas as pd
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+from streamlit_lottie import st_lottie
+import requests
 
-# Function to generate random weather data with seasonal variations
+# Function to load Lottie animations
+def load_lottie_url(url):
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None
+    return response.json()
+
+# Load Lottie animations
+sun_animation = load_lottie_url("https://assets10.lottiefiles.com/packages/lf20_t9gkkhz4.json")
+cloud_animation = load_lottie_url("https://assets7.lottiefiles.com/packages/lf20_ygiuluqn.json")
+
+# Function to generate random weather data
 def generate_weather_data(num_days, season):
-    # Define temperature and humidity ranges based on the season
     if season == "Winter":
         temp_range = (-10, 5)
         humidity_range = (30, 80)
@@ -35,10 +47,13 @@ def generate_weather_data(num_days, season):
     return weather_data
 
 # Streamlit app
-st.title("Advanced Weather Data Simulator")
+st.title("☀️ Weather Data Simulator ☁️")
+
+# Add Lottie animation
+st_lottie(sun_animation, height=150, key="sun")
 
 # User input for number of days and season
-num_days = st.number_input("Select number of days to simulate:", min_value=1, max_value=30, value=7)
+num_days = st.slider("Select number of days to simulate:", 1, 30, 7)
 season = st.selectbox("Select the season:", ["Winter", "Spring", "Summer", "Fall"])
 
 # Generate weather data
