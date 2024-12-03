@@ -1,67 +1,92 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import altair as alt
 import matplotlib.pyplot as plt
+import seaborn as sns
 
-# App title and header
-st.title("Weather Data Simulator 🌦️")
-st.subheader("Generate, Analyze, and Visualize Weather Data")
+# Custom CSS to change background color
+st.markdown(
+    """
+    <style>
+    .reportview-container {
+        background-color: #ADD8E6;  # Light blue background color
+    }
 
-# Sidebar: User Input for Data Generation
-st.sidebar.header("Weather Data Parameters")
-num_days = st.sidebar.slider("Number of Days", min_value=7, max_value=365, value=30)
-min_temp = st.sidebar.slider("Minimum Temperature (°C)", -30, 30, -10)
-max_temp = st.sidebar.slider("Maximum Temperature (°C)", min_temp, 50, 35)
-min_humidity = st.sidebar.slider("Minimum Humidity (%)", 0, 50, 10)
-max_humidity = st.sidebar.slider("Maximum Humidity (%)", min_humidity, 100, 90)
-min_wind_speed = st.sidebar.slider("Minimum Wind Speed (km/h)", 0, 10, 2)
-max_wind_speed = st.sidebar.slider("Maximum Wind Speed (km/h)", min_wind_speed, 100, 50)
-min_precipitation = st.sidebar.slider("Minimum Precipitation (mm)", 0, 10, 0)
-max_precipitation = st.sidebar.slider("Maximum Precipitation (mm)", min_precipitation, 50, 20)
+    .sidebar .sidebar-content {
+        background-color: #f5f5f5;  # Light gray background for sidebar
+    }
 
-# Generate Weather Data
-st.header("Generated Weather Data")
-weather_data = {
-    "Date": pd.date_range(start=pd.Timestamp.today(), periods=num_days),
-    "Temperature (°C)": np.random.uniform(min_temp, max_temp, num_days).round(2),
-    "Humidity (%)": np.random.uniform(min_humidity, max_humidity, num_days).round(2),
-    "Wind Speed (km/h)": np.random.uniform(min_wind_speed, max_wind_speed, num_days).round(2),
-    "Precipitation (mm)": np.random.uniform(min_precipitation, max_precipitation, num_days).round(2),
-}
-weather_df = pd.DataFrame(weather_data)
-st.dataframe(weather_df)
+    body {
+        font-family: 'Arial', sans-serif;  # Change font to Arial
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# Download Data as CSV
-st.subheader("Download Weather Data")
-csv = weather_df.to_csv(index=False).encode("utf-8")
-st.download_button(label="Download CSV", data=csv, file_name="weather_data.csv", mime="text/csv")
+# Page title
+st.title("Weather Data Simulator")
 
-# Visualization
-st.header("Weather Data Visualization")
+# Subheader for description
+st.write("""
+This app simulates weather data and visualizes the distribution of various attributes such as
+temperature, humidity, wind speed, etc. You can also generate synthetic weather data and
+explore it with histograms and scatter plots.
+""")
 
-# Select graph type
-graph_type = st.selectbox("Choose Graph Type", ["Line Chart", "Bar Chart", "Histogram"])
+# Simulate some synthetic weather data
+np.random.seed(42)
+n = 1000  # Number of data points
+temperature = np.random.normal(loc=25, scale=5, size=n)  # Temperature in Celsius
+humidity = np.random.normal(loc=60, scale=15, size=n)  # Humidity percentage
+wind_speed = np.random.normal(loc=15, scale=3, size=n)  # Wind speed in km/h
 
-if graph_type == "Line Chart":
-    st.line_chart(weather_df[["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]])
-elif graph_type == "Bar Chart":
-    st.bar_chart(weather_df[["Temperature (°C)", "Humidity (%)", "Wind Speed (km/h)", "Precipitation (mm)"]])
-elif graph_type == "Histogram":
-    st.subheader("Temperature Distribution")
-    
-    # Option 1: Altair for Histogram
-    temperature_histogram = alt.Chart(weather_df).mark_bar().encode(
-        alt.X("Temperature (°C)", bin=True, title="Temperature (°C)"),
-        alt.Y("count()", title="Frequency")
-    ).properties(width=600, height=400)
-    st.altair_chart(temperature_histogram)
+# Create a DataFrame
+weather_df = pd.DataFrame({
+    'Temperature (°C)': temperature,
+    'Humidity (%)': humidity,
+    'Wind Speed (km/h)': wind_speed
+})
 
-    # Option 2: Matplotlib for Histogram
-    st.write("Matplotlib Version:")
-    fig, ax = plt.subplots()
-    ax.hist(weather_df["Temperature (°C)"], bins=20, color="skyblue", edgecolor="black")
-    ax.set_title("Temperature Distribution")
-    ax.set_xlabel("Temperature (°C)")
-    ax.set_ylabel("Frequency")
-    st.pyplot(fig)
+# Display first few rows of the dataset
+st.write("### Synthetic Weather Data")
+st.dataframe(weather_df.head())
+
+# Option to download the data as CSV
+csv = weather_df.to_csv(index=False)
+st.download_button(
+    label="Download Data as CSV",
+    data=csv,
+    file_name="synthetic_weather_data.csv",
+    mime="text/csv"
+)
+
+# Display a histogram of Temperature distribution
+st.write("### Temperature Distribution")
+fig, ax = plt.subplots()
+sns.histplot(weather_df['Temperature (°C)'], kde=True, ax=ax, color='blue')
+ax.set_title("Temperature Distribution")
+st.pyplot(fig)
+
+# Display a histogram of Humidity distribution
+st.write("### Humidity Distribution")
+fig, ax = plt.subplots()
+sns.histplot(weather_df['Humidity (%)'], kde=True, ax=ax, color='green')
+ax.set_title("Humidity Distribution")
+st.pyplot(fig)
+
+# Display a scatter plot for Wind Speed vs Temperature
+st.write("### Wind Speed vs Temperature")
+fig, ax = plt.subplots()
+sns.scatterplot(data=weather_df, x='Temperature (°C)', y='Wind Speed (km/h)', ax=ax)
+ax.set_title("Wind Speed vs Temperature")
+st.pyplot(fig)
+
+# Display a correlation heatmap
+st.write("### Correlation Heatmap")
+fig, ax = plt.subplots()
+sns.heatmap(weather_df.corr(), annot=True, cmap='coolwarm', ax=ax)
+ax.set_title("Correlation Matrix")
+st.pyplot(fig)
+
+# Additional simulation or data manipulation options can be added here
